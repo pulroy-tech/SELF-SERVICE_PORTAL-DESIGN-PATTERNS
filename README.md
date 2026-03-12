@@ -42,15 +42,18 @@ Single instance + lock:
 
 dynamodb.go
 Lines 18-22
+```
 var (
 	dynamoClient *dynamodb.Client
 	dynamoMu     sync.Mutex
 )
+```
 
 
 Single accessor (lazy init under lock):
 dynamodb.go
 Lines 24-56
+```
 func getDynamoDBClient() (*dynamodb.Client, error) {
 	dynamoMu.Lock()
 	defer dynamoMu.Unlock()
@@ -63,6 +66,7 @@ func getDynamoDBClient() (*dynamodb.Client, error) {
 	log.Info("dynamodb: client initialized")
 	return dynamoClient, nil
 }
+```
 
 
 Singleton: Only dynamoClient is ever set; all callers get the same pointer.
