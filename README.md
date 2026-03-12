@@ -146,4 +146,64 @@ JWT authorizer (where used, e.g. for /routes): validates the token. If invalid �
 Your route handler (e.g. requestsProvider, specUploadHandler, apiDiscovery) runs last and does the actual work (DB, S3, Kong, etc.).
 So: Request → Security → (optional) Auth → Your handler. Each step either passes the request to the next with c.Next() or ends the chain by not calling it. That’s Chain of Responsibility: a pipeline of handlers, each with one responsibility, in order.
 
+<img width="1226" height="672" alt="image" src="https://github.com/user-attachments/assets/7a00424c-bb90-46f6-86b9-9f083e2f6245" />
+
+
+## FACADE 
+
+What is a Facade?
+Facade is a structural pattern: one simple interface in front of many subsystems.
+
+Problem: The client would need to know and call several complex pieces (different APIs, DBs, configs).
+Idea: Introduce one entry point (the “facade”) that:
+Exposes a small, easy-to-use API.
+Hides how many subsystems exist and how they’re called.
+Does the orchestration internally (calling the right services in the right order).
+So: one simple front door → behind it, many parts working together.
+
+In your project: the backend is the facade
+The Go backend is that single front door for the React app. The frontend only talks to the backend; the backend talks to everything else and returns simple responses.
+
+<img width="620" height="442" alt="image" src="https://github.com/user-attachments/assets/50d2f574-c692-4572-9c94-0937690d87ed" />
+
+
+### How the facade behaves on a few flows
+
+1. “My requests” — GET /requests
+Frontend: One call: GET backend_url/requests with the JWT.
+Facade (backend):
+Validates JWT and gets user id.
+Reads submissions from DynamoDB (by user).
+Calls Jira to get current status for each ticket.
+Builds a single JSON list (e.g. requests + total) and returns it.
+The frontend doesn’t know about DynamoDB or Jira; it only sees “give me my requests” and one response.
+
+2. “Submit spec” — POST /specs
+Frontend: One call: POST backend_url/specs with FormData (topic, description, status, spec file).
+Facade (backend):
+Validates JWT and form.
+Creates a ticket in Jira.
+Uploads the file to S3 (e.g. user-id/ticket-id/openapi-spec.json).
+Writes a record in DynamoDB.
+Returns something like { ticket_key, message }.
+Again: one endpoint, one place to send the token; Jira + S3 + DynamoDB are hidden behind the facade.
+
+3. “List APIs / routes” — GET /routes
+Frontend: GET backend_url/routes (with optional query params).
+Facade (backend):
+Validates JWT.
+Calls Kong Admin (routes, services).
+Can filter/merge and shape the data.
+Returns a single JSON (e.g. list of routes with service info).
+The frontend doesn’t talk to Kong directly; the backend is the only place that does.
+
+4. “Check spec” — POST /apiInsights/analyze
+Frontend: POST backend_url/apiInsights/analyze with the spec file.
+Facade (backend):
+Validates JWT.
+Sends the file to API Insights (or whatever service does the analysis).
+Returns the analysis result in one response.
+So again: one simple call, one response; the real service is behind the facade.
+
+
 
