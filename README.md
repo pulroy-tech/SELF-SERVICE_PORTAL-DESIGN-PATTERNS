@@ -78,13 +78,15 @@ Same idea:
 
 s3client.go
 Lines 17-21
+```
 var (
 	s3Client *s3.Client
 	s3Mu     sync.Mutex
 )
-
+```
 s3client.go
 Lines 22-55
+```
 func getS3Client() (*s3.Client, error) {
 	s3Mu.Lock()
 	defer s3Mu.Unlock()
@@ -96,6 +98,7 @@ func getS3Client() (*s3.Client, error) {
 	log.Info("s3: client initialized")
 	return s3Client, nil
 }
+```
 Singleton: One s3.Client for the process.
 Lazy: Created on first use (e.g. from uploadToS3, getObjectFromS3).
 Thread-safe: s3Mu protects the “if nil then create” section.
